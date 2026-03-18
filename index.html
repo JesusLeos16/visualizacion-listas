@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualizador de Estructuras — Centro</title>
+  <link rel="icon" href="/src/favicon.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0c0e14;
+      --bg2:       #12151f;
+      --bg3:       #181c28;
+      --border:    #ffffff12;
+      --border2:   #ffffff22;
+      --text:      #e8eaf0;
+      --muted:     #6b7280;
+      --accent:    #4f9eff;
+      --accent2:   #7c3aed;
+      --new:       #10b981;
+      --ultimo:    #f59e0b;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Space Grotesk', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg2);
+    }
+
+    .header-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 3px 8px;
+      border-radius: 4px;
+      opacity: .7;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -.01em;
+    }
+
+    /* ── MAIN CONTENT ────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, #4f9eff06 0%, transparent 70%),
+        radial-gradient(ellipse 60% 80% at 50% 30%, #7c3aed04 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 600px;
+    }
+
+    .title {
+      font-size: 42px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      line-height: 1.6;
+    }
+
+    /* ── CARD GRID ───────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg2);
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      background: var(--bg3);
+      transform: translateX(4px);
+    }
+
+    .card-content {
+      text-align: left;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .card-icon {
+      font-size: 24px;
+      color: var(--accent);;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 32px;
+      text-align: center;
+      background: var(--bg2);
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-badge">visualizador</span>
+    <h1>Estructuras de Datos</h1>
+  </header>
+
+  <main>
+    <div class="container">
+      <h2 class="title">Centro de Visualización</h2>
+      <p class="subtitle">Explora diferentes estructuras de datos de forma interactiva</p>
+
+      <div class="grid">
+        <a href="/Circulares-AU.html" class="card">
+          <div class="card-content">
+            <div class="card-title">Listas Circulares</div>
+            <div class="card-desc">Visualiza listas circulares dobles y sus operaciones</div>
+          </div>
+          <div class="card-icon">→</div>
+        </a>
+      </div>
+
+      <p style="font-size: 13px; color: var(--muted); margin-top: 32px;">
+        Próximamente: más estructuras de datos
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    Visualizador de Estructuras de Datos © 2026
+  </footer>
+</body>
+</html>
