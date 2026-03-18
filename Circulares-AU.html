@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista Circular Doble — Visualizador</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0c0e14;
+    --bg2:       #12151f;
+    --bg3:       #181c28;
+    --border:    #ffffff12;
+    --border2:   #ffffff22;
+    --text:      #e8eaf0;
+    --muted:     #6b7280;
+    --accent:    #4f9eff;
+    --accent2:   #7c3aed;
+    --sentinel:  #374151;
+    --new:       #10b981;
+    --ultimo:    #f59e0b;
+    --node-a:    #4f9eff;
+    --node-b:    #a78bfa;
+    --node-c:    #34d399;
+    --node-d:    #fb923c;
+    --node-e:    #f472b6;
+    --step1:     #4f9eff;
+    --step2:     #a78bfa;
+    --step3:     #34d399;
+    --step4:     #fb923c;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Space Grotesk', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg2);
+  }
+
+  .header-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 3px 8px;
+    border-radius: 4px;
+    opacity: .7;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+  /* ── MAIN LAYOUT ─────────────────────────────────────── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    height: calc(100vh - 62px);
+    overflow: hidden;
+  }
+
+  /* ── LEFT: CANVAS ────────────────────────────────────── */
+  .canvas-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .canvas-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 50%, #4f9eff08 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, #ffffff04 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, #ffffff04 40px);
+    pointer-events: none;
+  }
+
+  #viz {
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  #viz svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* ── CONTROLS ────────────────────────────────────────── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    z-index: 1;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .03em;
+  }
+
+  .btn:hover { background: #1e2233; border-color: #ffffff33; }
+  .btn:active { transform: scale(.97); }
+  .btn.primary { background: #1a2d4a; border-color: #4f9eff55; color: var(--accent); }
+  .btn.primary:hover { background: #1e3457; border-color: var(--accent); }
+  .btn:disabled { opacity: .3; cursor: default; transform: none; }
+
+  .counter {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .counter strong { color: var(--text); }
+
+  /* ── RIGHT: SIDEBAR ──────────────────────────────────── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--bg2);
+  }
+
+  .sidebar-section {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ── STEPS ───────────────────────────────────────────── */
+  .step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all .35s ease;
+    opacity: .3;
+  }
+
+  .step.active {
+    opacity: 1;
+    border-color: var(--step-color, var(--border2));
+    background: color-mix(in srgb, var(--step-color, #fff) 8%, transparent);
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--step-color, #fff) 15%, transparent);
+    color: var(--step-color, var(--text));
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .kw   { color: var(--step-color, var(--accent)); }
+  .obj  { color: #e8eaf0; }
+  .prop { color: #94a3b8; }
+
+  /* ── LEGEND ──────────────────────────────────────────── */
+  .legend { display: flex; flex-direction: column; gap: 8px; }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend-line {
+    width: 32px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+
+  .legend-line.solid { background: #4f9eff88; }
+  .legend-line.dashed {
+    background: repeating-linear-gradient(90deg, #6b728088 0, #6b728088 5px, transparent 5px, transparent 8px);
+  }
+
+  /* ── NODE TABLE ──────────────────────────────────────── */
+  .node-table { width: 100%; border-collapse: collapse; }
+  .node-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .node-table td {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .node-table tr:last-child td { border-bottom: none; }
+
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  /* ── FOOTER INFO ─────────────────────────────────────── */
+  .info-box {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .info-box code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: #4f9eff11;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ── RESPONSIVE ──────────────────────────────────────── */
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; overflow: visible; }
+    .canvas-panel { height: 420px; border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar { height: auto; }
+    header p { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">CDLList&lt;T&gt;</div>
+  <h1>Lista Circular Doblemente Enlazada</h1>
+  <p>Estructuras de Datos</p>
+</header>
+
+<main>
+  <!-- ── CANVAS ── -->
+  <div class="canvas-panel">
+    <div id="viz">
+      <svg id="svg" viewBox="0 0 500 500">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+              stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g id="links"></g>
+        <g id="nodes-g"></g>
+      </svg>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="btnAdd">+ agregar nodo</button>
+      <button class="btn" id="btnReset">reiniciar</button>
+      <div class="counter">nodos: <strong id="count">0</strong></div>
+    </div>
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+
+    <!-- Steps -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Pasos al insertar</div>
+      <div class="step-list">
+        <div class="step" id="s1" style="--step-color: var(--step1)">
+          <div class="step-num">1</div>
+          <div class="step-code">
+            <span class="obj">nuevo</span><span class="prop">.right</span>
+            &nbsp;= <span class="kw">sentinela</span>
+          </div>
+        </div>
+        <div class="step" id="s2" style="--step-color: var(--step2)">
+          <div class="step-num">2</div>
+          <div class="step-code">
+            <span class="obj">nuevo</span><span class="prop">.left</span>
+            &nbsp;&nbsp;= <span class="kw">ultimo</span>
+          </div>
+        </div>
+        <div class="step" id="s3" style="--step-color: var(--step3)">
+          <div class="step-num">3</div>
+          <div class="step-code">
+            <span class="obj">ultimo</span><span class="prop">.right</span>
+            &nbsp;= <span class="kw">nuevo</span>
+          </div>
+        </div>
+        <div class="step" id="s4" style="--step-color: var(--step4)">
+          <div class="step-num">4</div>
+          <div class="step-code">
+            <span class="obj">sentinela</span><span class="prop">.left</span>
+            = <span class="kw">nuevo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Leyenda</div>
+      <div class="legend">
+        <div class="legend-row">
+          <div class="legend-line solid"></div>
+          <span>puntero <code>.right</code></span>
+        </div>
+        <div class="legend-row">
+          <div class="legend-line dashed"></div>
+          <span>puntero <code>.left</code></span>
+        </div>
+        <div class="legend-row">
+          <div style="width:24px;height:24px;border-radius:50%;border:1.5px dashed #6b7280;flex-shrink:0;display:grid;place-items:center">
+            <span style="font-size:8px;font-family:var(--mono);color:#6b7280">S</span>
+          </div>
+          <span>sentinela — nodo guardia sin dato</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Node state table -->
+    <div class="sidebar-section" style="flex:1">
+      <div class="sidebar-label">Estado de nodos</div>
+      <table class="node-table">
+        <thead>
+          <tr>
+            <th>nodo</th>
+            <th>.left</th>
+            <th>.right</th>
+          </tr>
+        </thead>
+        <tbody id="node-tbody">
+          <tr><td colspan="3" style="color:var(--muted);font-size:11px">— vacío —</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Info -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Regla de oro</div>
+      <p class="info-box">
+        <code>sentinela.right</code> → primer elemento<br>
+        <code>sentinela.left</code> &nbsp;→ último elemento<br><br>
+        La lista <em>nunca</em> tiene punteros <code>null</code>.
+        Siempre es un ciclo cerrado.
+      </p>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const CX = 250, CY = 250, R = 155;
+const COLORS = ['#4f9eff','#a78bfa','#34d399','#fb923c','#f472b6'];
+const LABELS = ['A','B','C','D','E'];
+
+let nodes = [];   // [{label, color}]
+let stepTimer = null;
+
+// ── Geometry ─────────────────────────────────────────────
+function pos(i, total) {
+  const a = (2 * Math.PI * i / total) - Math.PI / 2;
+  return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) };
+}
+
+// ── SVG helpers ───────────────────────────────────────────
+function el(tag, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+function text(x, y, content, opts = {}) {
+  const t = el('text', {
+    x, y,
+    'text-anchor': opts.anchor || 'middle',
+    'dominant-baseline': 'central',
+    'font-size': opts.size || 14,
+    'font-weight': opts.weight || 400,
+    'font-family': opts.mono ? "'JetBrains Mono', monospace" : "'Space Grotesk', sans-serif",
+    fill: opts.fill || '#e8eaf0',
+    ...( opts.opacity ? {opacity: opts.opacity} : {} )
+  });
+  t.textContent = content;
+  return t;
+}
+
+// ── Render ────────────────────────────────────────────────
+function render(highlightIdx) {
+  const linksG = document.getElementById('links');
+  const nodesG = document.getElementById('nodes-g');
+  linksG.innerHTML = '';
+  nodesG.innerHTML = '';
+
+  const total = nodes.length;
+  if (total === 0) return;
+
+  // ── Special case: solo la sentinela, se apunta a sí misma ──
+  if (total === 1) {
+    const p = { x: CX, y: CY };
+    const NR = 22;
+
+    // .right self-loop (lado derecho, arriba)
+    const r1x1 = p.x + NR * Math.cos(-Math.PI/5);
+    const r1y1 = p.y + NR * Math.sin(-Math.PI/5);
+    const r1x2 = p.x + NR * Math.cos(Math.PI/5);
+    const r1y2 = p.y + NR * Math.sin(Math.PI/5);
+    linksG.appendChild(el('path', {
+      d: `M${r1x1},${r1y1} C${p.x+75},${p.y-55} ${p.x+75},${p.y+55} ${r1x2},${r1y2}`,
+      fill: 'none', stroke: '#4f9eff88', 'stroke-width': 1, 'marker-end': 'url(#arr)'
+    }));
+    const t1 = text(p.x + 82, p.y, '.right', { size: 10, mono: true, fill: '#4f9eff99', anchor: 'start' });
+    linksG.appendChild(t1);
+
+    // .left self-loop (lado izquierdo, abajo)
+    const r2x1 = p.x + NR * Math.cos(Math.PI - Math.PI/5);
+    const r2y1 = p.y + NR * Math.sin(Math.PI - Math.PI/5);
+    const r2x2 = p.x + NR * Math.cos(Math.PI + Math.PI/5);
+    const r2y2 = p.y + NR * Math.sin(Math.PI + Math.PI/5);
+    linksG.appendChild(el('path', {
+      d: `M${r2x1},${r2y1} C${p.x-75},${p.y-55} ${p.x-75},${p.y+55} ${r2x2},${r2y2}`,
+      fill: 'none', stroke: '#6b728088', 'stroke-width': .8, 'stroke-dasharray': '4 3', 'marker-end': 'url(#arr)'
+    }));
+    const t2 = text(p.x - 82, p.y, '.left', { size: 10, mono: true, fill: '#6b7280aa', anchor: 'end' });
+    linksG.appendChild(t2);
+
+    // draw sentinel node
+    const g = el('g', {});
+    g.appendChild(el('circle', { cx: p.x, cy: p.y, r: NR, fill: '#12151f', stroke: '#374151', 'stroke-width': 1.5, 'stroke-dasharray': '5 3' }));
+    g.appendChild(text(p.x, p.y, 'S', { size: 14, weight: 500, mono: true, fill: '#6b7280' }));
+
+    // "sentinela" badge abajo
+    g.appendChild(text(p.x, p.y + 40, 'sentinela', { size: 10, mono: true, fill: '#6b728099' }));
+    // label estado vacío
+    g.appendChild(text(p.x, p.y - 42, 'lista vacía', { size: 10, mono: true, fill: '#374151' }));
+
+    nodesG.appendChild(g);
+    updateTable(highlightIdx);
+    return;
+  }
+
+  // Draw arrows
+  for (let i = 0; i < total; i++) {
+    const p = pos(i, total);
+    const nxt = pos((i + 1) % total, total);
+    const NR = 22; // node radius
+
+    const dx = nxt.x - p.x, dy = nxt.y - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const ux = dx / dist, uy = dy / dist;
+    const nx = -uy, ny = ux; // normal
+
+    const sx = p.x + ux * (NR + 2);
+    const sy = p.y + uy * (NR + 2);
+    const ex = nxt.x - ux * (NR + 5);
+    const ey = nxt.y - uy * (NR + 5);
+
+    // curve offset
+    const off = 22;
+    const mx = (sx+ex)/2 + nx * off;
+    const my = (sy+ey)/2 + ny * off;
+
+    // right arrow
+    const isNew = i === highlightIdx && total > 1;
+    const rPath = el('path', {
+      d: `M${sx},${sy} Q${mx},${my} ${ex},${ey}`,
+      fill: 'none',
+      stroke: isNew ? COLORS[(highlightIdx - 1 + COLORS.length) % COLORS.length] : '#4f9eff55',
+      'stroke-width': isNew ? 2 : 1,
+      'marker-end': 'url(#arr)',
+      ...(isNew ? {filter:'url(#glow)'} : {})
+    });
+    linksG.appendChild(rPath);
+
+    // left arrow (dashed, inner offset)
+    const lmx = (sx+ex)/2 - nx * 30;
+    const lmy = (sy+ey)/2 - ny * 30;
+    const lPath = el('path', {
+      d: `M${ex},${ey} Q${lmx},${lmy} ${sx},${sy}`,
+      fill: 'none',
+      stroke: '#6b728055',
+      'stroke-width': .8,
+      'stroke-dasharray': '4 3',
+      'marker-end': 'url(#arr)',
+    });
+    linksG.appendChild(lPath);
+  }
+
+  // Draw nodes
+  for (let i = 0; i < total; i++) {
+    const p = pos(i, total);
+    const n = nodes[i];
+    const isSentinel = i === 0;
+    const isNew = i === highlightIdx && total > 1;
+    const isUltimo = i === total - 2 && total > 2 && !isNew;
+
+    const g = el('g', { style: 'cursor:default' });
+
+    // glow ring for new node
+    if (isNew) {
+      const ring = el('circle', {
+        cx: p.x, cy: p.y, r: 30,
+        fill: 'none',
+        stroke: n.color,
+        'stroke-width': .5,
+        opacity: .35
+      });
+      g.appendChild(ring);
+    }
+
+    // main circle
+    const circle = el('circle', {
+      cx: p.x, cy: p.y, r: 22,
+      fill: isSentinel ? '#12151f' : isNew ? `${n.color}20` : '#1a1f2e',
+      stroke: isSentinel ? '#374151' : isNew ? n.color : '#2d3451',
+      'stroke-width': isSentinel ? 1.5 : isNew ? 2 : 1,
+      'stroke-dasharray': isSentinel ? '5 3' : 'none',
+    });
+    g.appendChild(circle);
+
+    // label
+    g.appendChild(text(p.x, p.y, n.label, {
+      size: 14,
+      weight: 500,
+      mono: true,
+      fill: isSentinel ? '#6b7280' : isNew ? n.color : '#94a3b8',
+    }));
+
+    // badge
+    const badge = isNew ? 'nuevo' : isUltimo ? 'último' : isSentinel ? '' : null;
+    if (badge) {
+      const bColor = isNew ? n.color : '#f59e0b';
+      // position badge outward
+      const a = (2 * Math.PI * i / total) - Math.PI / 2;
+      const bx = CX + (R + 44) * Math.cos(a);
+      const by = CY + (R + 44) * Math.sin(a);
+      g.appendChild(text(bx, by, badge, {
+        size: 10, mono: true, fill: bColor, weight: 500
+      }));
+    }
+
+    nodesG.appendChild(g);
+  }
+
+  // Update state table
+  updateTable(highlightIdx);
+}
+
+// ── Table ─────────────────────────────────────────────────
+function updateTable(highlightIdx) {
+  const tbody = document.getElementById('node-tbody');
+  const total = nodes.length;
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:11px">— vacío —</td></tr>';
+    return;
+  }
+  if (total === 1) {
+    tbody.innerHTML = `<tr><td><span class="dot" style="background:#374151"></span>S</td><td style="color:var(--muted)">S (sí mismo)</td><td style="color:var(--muted)">S (sí mismo)</td></tr>`;
+    return;
+  }
+  const rows = nodes.map((n, i) => {
+    const prevLabel = nodes[(i - 1 + total) % total].label;
+    const nextLabel = nodes[(i + 1) % total].label;
+    const isNew = i === highlightIdx && total > 1;
+    const dot = `<span class="dot" style="background:${n.color}"></span>`;
+    const style = isNew ? `style="color:${n.color}"` : '';
+    return `<tr ${style}><td>${dot}${n.label}</td><td>${prevLabel}</td><td>${nextLabel}</td></tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+// ── Step animation ────────────────────────────────────────
+function animateSteps() {
+  const steps = ['s1','s2','s3','s4'];
+  steps.forEach(s => document.getElementById(s).classList.remove('active'));
+  let i = 0;
+  function next() {
+    if (i < steps.length) {
+      document.getElementById(steps[i]).classList.add('active');
+      i++;
+      stepTimer = setTimeout(next, 600);
+    }
+  }
+  next();
+}
+
+// ── Add ───────────────────────────────────────────────────
+function addNode() {
+  if (nodes.length >= 6) return;
+  if (stepTimer) clearTimeout(stepTimer);
+  steps.forEach(s => document.getElementById(s).classList.remove('active'));
+
+  const idx = nodes.length === 0 ? 0 : nodes.length - 1; // data index
+  const label = nodes.length === 0 ? 'S' : LABELS[nodes.length - 1];
+  const color = nodes.length === 0 ? '#374151' : COLORS[(nodes.length - 1) % COLORS.length];
+  nodes.push({ label, color });
+
+  const newIdx = nodes.length - 1;
+  render(newIdx);
+  document.getElementById('count').textContent = Math.max(0, nodes.length - 1);
+  if (nodes.length > 1) animateSteps();
+  document.getElementById('btnAdd').disabled = nodes.length >= 6;
+}
+
+// ── Reset ─────────────────────────────────────────────────
+function reset() {
+  if (stepTimer) clearTimeout(stepTimer);
+  nodes = [];
+  document.getElementById('links').innerHTML = '';
+  document.getElementById('nodes-g').innerHTML = '';
+  document.getElementById('count').textContent = '0';
+  steps.forEach(s => document.getElementById(s).classList.remove('active'));
+  document.getElementById('btnAdd').disabled = false;
+  addNode(); // adds sentinel
+}
+
+const steps = ['s1','s2','s3','s4'];
+document.getElementById('btnAdd').addEventListener('click', addNode);
+document.getElementById('btnReset').addEventListener('click', reset);
+
+reset();
+</script>
+</body>
+</html>
